@@ -8,7 +8,7 @@ El proyecto se construye ciclo a ciclo, siguiendo el flujo SDD:
 | Ciclo | Feature | Estado |
 |-------|---------|--------|
 | 000 | Andamiaje (estructura repo, ramas, render.yaml, constitución) | ✅ Hecho |
-| 001 | Autenticación y roles (usuarios, JWT, bcrypt) | Pendiente |
+| 001 | Autenticación y roles (usuarios, JWT, bcrypt) | ✅ Hecho (backend + mockups + tests TDD) |
 | 002 | Catálogo de barberías, servicios y barberos | Pendiente |
 | 003 | Horarios y disponibilidad por barbero | Pendiente |
 | 004 | Reservas de citas (crear, ver, cancelar) | Pendiente |
