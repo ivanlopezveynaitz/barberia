@@ -1,0 +1,14 @@
+node_modules
+**/.env
+**/.env.*
+**/package-lock.json
+.DS_Store
+dist/
+opencode.json
+skills-lock.json
+.agents
+.opencode
+*.log
+.tsbuildinfo
+coverage/
+build/
