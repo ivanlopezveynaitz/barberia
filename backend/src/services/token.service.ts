@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 
+export { jwt };
+
 const prisma = new PrismaClient();
 
 const ACCESS_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login } from '../controllers/auth.controller';
+import { register, login, verify } from '../controllers/auth.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { roleMiddleware } from '../middleware/role.middleware';
 
@@ -7,6 +7,7 @@ const router = Router();
 
 router.post('/register', register);
 router.post('/login', login);
+router.get('/verify', verify);
 
 // Endpoints de prueba para validar middlewares (RF-004, RF-005)
 router.get('/test-me', authMiddleware, (req, res) => {

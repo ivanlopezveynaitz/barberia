@@ -81,6 +81,53 @@ export async function register(req: Request, res: Response): Promise<void> {
 }
 
 /**
+ * RF-007: Verificación de correo electrónico.
+ * - Token válido → marca usuario como verificado, elimina el token
+ * - Token expirado → 400
+ * - Token inexistente → 404
+ */
+export async function verify(req: Request, res: Response): Promise<void> {
+  const { token } = req.query as { token: string };
+
+  if (!token) {
+    res.status(400).json({ error: 'Token de verificación requerido' });
+    return;
+  }
+
+  const verificationToken = await prisma.verificationToken.findUnique({
+    where: { token },
+    include: { usuario: true },
+  });
+
+  if (!verificationToken) {
+    res.status(404).json({ error: 'Token de verificación no encontrado' });
+    return;
+  }
+
+  // Verificar que no haya expirado
+  if (verificationToken.expires < new Date()) {
+    res.status(400).json({ error: 'Token expirado. Solicita uno nuevo.' });
+    return;
+  }
+
+  // Marcar usuario como verificado
+  await prisma.usuario.update({
+    where: { id: verificationToken.usuarioId },
+    data: { verificado: true },
+  });
+
+  // Eliminar el token usado
+  await prisma.verificationToken.delete({
+    where: { token },
+  });
+
+  res.status(200).json({
+    verificado: true,
+    message: 'Correo electrónico verificado exitosamente',
+  });
+}
+
+/**
  * RF-002: Inicio de sesión.
  * - Credenciales incorrectas → 401
  * - Correo no verificado → 403
