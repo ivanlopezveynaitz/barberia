@@ -1,0 +1,34 @@
+# render.yaml — Blueprint de Render para BarberiaSDD
+# Define el proyecto como código (Infrastructure as Code).
+# Ajusta buildCommand/startCommand/env según el stack (meta-framework) que elijas.
+
+services:
+  - type: web
+    name: BarberiaSDD
+    env: node
+    region: oregon
+    branch: main
+    repo: https://github.com/ivanlopezveynaitz/barberia
+    # buildCommand: npm install && npm run build   # descomenta y ajusta según tu stack
+    # startCommand: npm start                      # descomenta y ajusta según tu stack
+    # autoDeploy: true
+    # healthCheckPath: /health
+
+    envVars:
+      - key: STRIPE_API_KEY
+        sync: false
+        # Valor: clave secreta de Stripe en modo prueba (sk_test_...)
+        # Configúrala en el Dashboard de Render > BarberiaSDD > Environment
+
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+        # Valor: secreto del webhook de Stripe (whsec_...)
+
+      - key: NODE_ENV
+        value: production
+
+    # Ejemplo de disco persistente (opcional, para BD SQLite o uploads)
+    # disk:
+    #   name: data
+    #   mountPath: /var/data
+    #   sizeGB: 1
