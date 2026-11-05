@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import authRoutes from './routes/auth.routes';
 
 export const app = express();
 
@@ -24,3 +25,6 @@ app.use(
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'barberia-backend' });
 });
+
+// Rutas de autenticación
+app.use('/auth', authRoutes);

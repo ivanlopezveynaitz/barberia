@@ -37,7 +37,9 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.17.0",
     "@types/nodemailer": "^6.4.16",
+    "@types/supertest": "^7.2.1",
     "prisma": "^5.22.0",
+    "supertest": "^7.3.1",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
