@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import { prisma } from '../test/setup';
 import { generateVerificationToken } from './token.service';
 
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'localhost',
   port: Number(process.env.SMTP_PORT) || 1025,
   secure: false,
