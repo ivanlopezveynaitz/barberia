@@ -1,0 +1,64 @@
+// prisma/schema.prisma
+// Modelo de datos — Ciclo 001: Autenticación y roles
+// Todas las horas se guardan en UTC (principio de horas en UTC)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Una barbería del sistema. Debe existir al menos una antes de registrar usuarios.
+model Barberia {
+  id        String   @id @default(cuid())
+  nombre    String
+  slug      String   @unique
+  direccion String?
+  telefono  String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuarios Usuario[]
+}
+
+/// Usuario del sistema. Cada usuario está asociado a una barbería (salvo superadministrador global).
+/// La contraseña se almacena hasheada con bcrypt (nunca en texto plano).
+model Usuario {
+  id                String      @id @default(cuid())
+  nombre            String
+  email             String      @unique
+  password          String
+  rol               String      // superadministrador | administrador_barberia | barbero | recepcion_caja | cliente
+  verificado        Boolean     @default(false)
+  barberiaId        String?
+  barberia          Barberia?   @relation(fields: [barberiaId], references: [id])
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  verificationTokens VerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+/// Token de verificación de correo electrónico (RF-007).
+model VerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expires   DateTime
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+/// Token de restablecimiento de contraseña (RF-009).
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expires   DateTime
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  createdAt DateTime @default(now())
+}
