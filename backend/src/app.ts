@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
 
 export const app = express();
 
@@ -28,3 +29,6 @@ app.get('/health', (_req, res) => {
 
 // Rutas de autenticación
 app.use('/auth', authRoutes);
+
+// Rutas de usuarios
+app.use('/users', userRoutes);

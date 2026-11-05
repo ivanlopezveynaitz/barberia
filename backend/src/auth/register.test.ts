@@ -1,30 +1,21 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { app } from '../app';
 import request from 'supertest';
-import { prisma } from '../test/setup';
+import { PrismaClient } from '@prisma/client';
+import { createPrismaClient, cleanDatabase, createTestBarberia } from '../test/setup';
+import { hashPassword } from '../services/password.service';
 
 describe('POST /auth/register (RF-001)', () => {
+  let prisma: PrismaClient;
+
   beforeEach(async () => {
-    // Barbería de prueba — debe existir antes de registrar usuarios (principio de aislamiento)
-    await prisma.barberia.create({
-      data: {
-        nombre: 'Barbería Central',
-        slug: 'barberia-central',
-        direccion: 'Calle Falsa 123',
-        telefono: '555-0199',
-        activo: true,
-      },
-    });
+    prisma = createPrismaClient();
+    await cleanDatabase(prisma);
+    await createTestBarberia(prisma, 'barberia-register');
   });
 
   afterEach(async () => {
-    await prisma.passwordResetToken.deleteMany();
-    await prisma.verificationToken.deleteMany();
-    await prisma.usuario.deleteMany();
-    await prisma.barberia.deleteMany();
-  });
-
-  afterAll(async () => {
+    await cleanDatabase(prisma);
     await prisma.$disconnect();
   });
 
@@ -36,7 +27,7 @@ describe('POST /auth/register (RF-001)', () => {
         email: 'juan@test.com',
         password: 'Password123',
         rol: 'cliente',
-        barberiaSlug: 'barberia-central',
+        barberiaSlug: 'barberia-register',
       });
 
     expect(res.status).toBe(201);
@@ -44,7 +35,6 @@ describe('POST /auth/register (RF-001)', () => {
     expect(res.body.usuario.verificado).toBe(false);
     expect(res.body.usuario.rol).toBe('cliente');
     expect(res.body.usuario.barberiaId).toBeDefined();
-    // La contraseña nunca se devuelve en texto plano (principio de dinero/seguridad)
     expect(res.body.usuario.password).toBeUndefined();
   });
 
@@ -56,7 +46,7 @@ describe('POST /auth/register (RF-001)', () => {
         email: 'duplicado@test.com',
         password: 'Password123',
         rol: 'cliente',
-        barberiaSlug: 'barberia-central',
+        barberiaSlug: 'barberia-register',
       });
 
     const res = await request(app)
@@ -66,7 +56,7 @@ describe('POST /auth/register (RF-001)', () => {
         email: 'duplicado@test.com',
         password: 'Password123',
         rol: 'cliente',
-        barberiaSlug: 'barberia-central',
+        barberiaSlug: 'barberia-register',
       });
 
     expect(res.status).toBe(409);
@@ -96,7 +86,7 @@ describe('POST /auth/register (RF-001)', () => {
         email: 'corta@test.com',
         password: '12345',
         rol: 'cliente',
-        barberiaSlug: 'barberia-central',
+        barberiaSlug: 'barberia-register',
       });
 
     expect(res.status).toBe(400);

@@ -1,24 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { app } from '../app';
 import request from 'supertest';
-import { prisma } from '../test/setup';
+import { PrismaClient } from '@prisma/client';
+import { createPrismaClient, cleanDatabase, createTestBarberia } from '../test/setup';
 import { hashPassword } from '../services/password.service';
 import { generateAccessToken } from '../services/token.service';
 
 describe('Middleware auth (RF-004)', () => {
+  let prisma: PrismaClient;
   let accessToken: string;
   let usuarioId: string;
 
   beforeEach(async () => {
-    await prisma.barberia.create({
-      data: {
-        nombre: 'Barbería Central',
-        slug: 'barberia-central',
-        direccion: 'Calle Falsa 123',
-        telefono: '555-0199',
-        activo: true,
-      },
-    });
+    prisma = createPrismaClient();
+    await cleanDatabase(prisma);
+    await createTestBarberia(prisma, 'barberia-middleware');
 
     const passwordHash = await hashPassword('Password123');
 
@@ -31,22 +27,20 @@ describe('Middleware auth (RF-004)', () => {
         verificado: true,
       },
     });
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { barberiaId: undefined },
+    });
 
     usuarioId = usuario.id;
     accessToken = generateAccessToken(usuario.id);
   });
 
   afterEach(async () => {
-    await prisma.verificationToken.deleteMany();
-    await prisma.usuario.deleteMany();
-    await prisma.barberia.deleteMany();
-  });
-
-  afterAll(async () => {
+    await cleanDatabase(prisma);
     await prisma.$disconnect();
   });
 
-  // Endpoint protegido temporal para probar el middleware
   it('debe rechazar petición sin token (401 Unauthorized)', async () => {
     const res = await request(app).get('/auth/test-me');
     expect(res.status).toBe(401);
@@ -72,24 +66,18 @@ describe('Middleware auth (RF-004)', () => {
 });
 
 describe('Middleware role (RF-005)', () => {
+  let prisma2: PrismaClient;
   let adminToken: string;
   let clienteToken: string;
 
   beforeEach(async () => {
-    await prisma.barberia.create({
-      data: {
-        nombre: 'Barbería Central',
-        slug: 'barberia-central',
-        direccion: 'Calle Falsa 123',
-        telefono: '555-0199',
-        activo: true,
-      },
-    });
+    prisma2 = createPrismaClient();
+    await cleanDatabase(prisma2);
+    await createTestBarberia(prisma2, 'barberia-middleware-role');
 
-    // Crear admin y cliente
     const passwordHash = await hashPassword('Password123');
 
-    const admin = await prisma.usuario.create({
+    const admin = await prisma2.usuario.create({
       data: {
         nombre: 'Admin',
         email: 'admin@test.com',
@@ -99,7 +87,7 @@ describe('Middleware role (RF-005)', () => {
       },
     });
 
-    const cliente = await prisma.usuario.create({
+    const cliente = await prisma2.usuario.create({
       data: {
         nombre: 'Cliente',
         email: 'cliente@test.com',
@@ -114,13 +102,8 @@ describe('Middleware role (RF-005)', () => {
   });
 
   afterEach(async () => {
-    await prisma.verificationToken.deleteMany();
-    await prisma.usuario.deleteMany();
-    await prisma.barberia.deleteMany();
-  });
-
-  afterAll(async () => {
-    await prisma.$disconnect();
+    await cleanDatabase(prisma2);
+    await prisma2.$disconnect();
   });
 
   it('debe permitir acceso a rol autorizado (administrador_barberia)', async () => {

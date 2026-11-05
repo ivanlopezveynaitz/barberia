@@ -1,24 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { app } from '../app';
 import request from 'supertest';
-import { prisma } from '../test/setup';
+import { PrismaClient } from '@prisma/client';
+import { createPrismaClient, cleanDatabase, createTestBarberia } from '../test/setup';
 import { hashPassword } from '../services/password.service';
 import { jwt } from '../services/token.service';
 
 describe('GET /auth/verify (RF-007)', () => {
+  let prisma: PrismaClient;
   let verificationToken: string;
   let usuarioId: string;
 
   beforeEach(async () => {
-    await prisma.barberia.create({
-      data: {
-        nombre: 'Barbería Central',
-        slug: 'barberia-central',
-        direccion: 'Calle Falsa 123',
-        telefono: '555-0199',
-        activo: true,
-      },
-    });
+    prisma = createPrismaClient();
+    await cleanDatabase(prisma);
+    await createTestBarberia(prisma, 'barberia-verify');
 
     const passwordHash = await hashPassword('Password123');
 
@@ -31,10 +27,13 @@ describe('GET /auth/verify (RF-007)', () => {
         verificado: false,
       },
     });
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { barberiaId: undefined },
+    });
 
     usuarioId = usuario.id;
 
-    // Crear token de verificación válido (1 hora de expiración)
     const token = jwt.sign(
       { sub: usuario.id, type: 'verification' },
       process.env.JWT_SECRET || 'dev-secret-change-me',
@@ -52,12 +51,7 @@ describe('GET /auth/verify (RF-007)', () => {
   });
 
   afterEach(async () => {
-    await prisma.verificationToken.deleteMany();
-    await prisma.usuario.deleteMany();
-    await prisma.barberia.deleteMany();
-  });
-
-  afterAll(async () => {
+    await cleanDatabase(prisma);
     await prisma.$disconnect();
   });
 
@@ -67,13 +61,11 @@ describe('GET /auth/verify (RF-007)', () => {
     expect(res.status).toBe(200);
     expect(res.body.verificado).toBe(true);
 
-    // Verificar en base de datos
     const usuario = await prisma.usuario.findUnique({
       where: { id: usuarioId },
     });
     expect(usuario?.verificado).toBe(true);
 
-    // El token debe haberse eliminado
     const tokenGuardado = await prisma.verificationToken.findUnique({
       where: { token: verificationToken },
     });
@@ -90,7 +82,7 @@ describe('GET /auth/verify (RF-007)', () => {
     const tokenExpirado = jwt.sign(
       { sub: usuarioId, type: 'verification' },
       process.env.JWT_SECRET || 'dev-secret-change-me',
-      { expiresIn: '-1h' } // ya expirado
+      { expiresIn: '-1h' }
     );
 
     const expires = new Date();

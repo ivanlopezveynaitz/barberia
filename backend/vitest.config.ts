@@ -5,5 +5,6 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     setupFiles: ['./src/test/setup.ts'],
+    maxConcurrency: 1, // Ejecutar tests secuencialmente para evitar conflictos de DB
   },
 });

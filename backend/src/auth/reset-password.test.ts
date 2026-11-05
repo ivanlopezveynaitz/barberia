@@ -1,23 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { app } from '../app';
 import request from 'supertest';
-import { prisma } from '../test/setup';
+import { PrismaClient } from '@prisma/client';
+import { createPrismaClient, cleanDatabase, createTestBarberia } from '../test/setup';
 import { hashPassword } from '../services/password.service';
 import { jwt } from '../services/token.service';
 
 describe('Reset de contraseña (RF-009)', () => {
+  let prisma: PrismaClient;
   let passwordHash: string;
 
   beforeEach(async () => {
-    await prisma.barberia.create({
-      data: {
-        nombre: 'Barbería Central',
-        slug: 'barberia-central',
-        direccion: 'Calle Falsa 123',
-        telefono: '555-0199',
-        activo: true,
-      },
-    });
+    prisma = createPrismaClient();
+    await cleanDatabase(prisma);
+    await createTestBarberia(prisma, 'barberia-reset');
 
     passwordHash = await hashPassword('Password123');
 
@@ -33,13 +29,7 @@ describe('Reset de contraseña (RF-009)', () => {
   });
 
   afterEach(async () => {
-    await prisma.passwordResetToken.deleteMany();
-    await prisma.verificationToken.deleteMany();
-    await prisma.usuario.deleteMany();
-    await prisma.barberia.deleteMany();
-  });
-
-  afterAll(async () => {
+    await cleanDatabase(prisma);
     await prisma.$disconnect();
   });
 
@@ -51,7 +41,6 @@ describe('Reset de contraseña (RF-009)', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBeDefined();
 
-    // Verificar que se creó un PasswordResetToken
     const tokenGuardado = await prisma.passwordResetToken.findFirst({
       where: { usuario: { email: 'usuario@test.com' } },
     });
@@ -93,12 +82,10 @@ describe('Reset de contraseña (RF-009)', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBeDefined();
 
-    // Verificar que la contraseña se actualizó (el usuario puede hacer login con la nueva)
     const usuarioActualizado = await prisma.usuario.findUnique({
       where: { email: 'usuario@test.com' },
     });
     expect(usuarioActualizado).toBeDefined();
-    // El hash debería ser diferente al original
     expect(usuarioActualizado?.password).not.toBe(passwordHash);
   });
 
